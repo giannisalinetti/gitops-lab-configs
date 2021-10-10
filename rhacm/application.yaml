@@ -1,0 +1,63 @@
+apiVersion: v1                    
+kind: Namespace
+metadata:
+  name: openshift-gitops                             
+---
+apiVersion: app.k8s.io/v1beta1
+kind: Application
+metadata:
+  name: dev-appset
+  namespace: openshift-gitops
+spec:
+  componentKinds:
+  - group: apps.open-cluster-management.io
+    kind: Subscription
+  descriptor: {}
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values: 
+          - dev-appset
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: Channel
+metadata:
+  annotations:
+    apps.open-cluster-management.io/reconcile-rate: medium
+  name: ggithubcom-giannisalinetti-gitops-lab-configs
+  namespace: ggithubcom-giannisalinetti-gitops-lab-configs-ns
+spec:
+  type: Git
+  pathname: 'https://github.com/giannisalinetti/gitops-lab-configs.git'
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: Subscription
+metadata:
+  annotations:
+    apps.open-cluster-management.io/git-branch: main
+    apps.open-cluster-management.io/git-path: argocd/dev
+    apps.open-cluster-management.io/reconcile-option: merge
+  labels:
+    app: dev-appset
+  name: dev-appset-subscription-1
+  namespace: openshift-gitops
+spec:
+  channel: ggithubcom-giannisalinetti-gitops-lab-configs-ns/ggithubcom-giannisalinetti-gitops-lab-configs
+  placement:
+    placementRef:
+      kind: PlacementRule
+      name: dev-appset-placement-1
+---
+apiVersion: apps.open-cluster-management.io/v1
+kind: PlacementRule
+metadata:
+  labels:
+    app: dev-appset
+  name: dev-appset-placement-1
+  namespace: openshift-gitops
+spec:
+  clusterSelector:
+    matchLabels:
+      'environment': 'dev'
+
